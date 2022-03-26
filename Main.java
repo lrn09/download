@@ -10,27 +10,30 @@ public class Main {
 
     public static void unZip(String zipName, String destination) throws IOException {
         byte[] buffer = new byte[1024];
-        ZipInputStream zis = new ZipInputStream(new FileInputStream(zipName));
-        ZipEntry zipEntry = zis.getNextEntry();
-        while (zipEntry != null) {
-            File newFile = new File(destination, zipEntry.getName());
-            if (zipEntry.isDirectory()) {
-                if (!newFile.isDirectory() && !newFile.mkdir()) {
-                    throw new IOException("Failed to create directory " + newFile);
+        try (ZipInputStream zis = new ZipInputStream(new FileInputStream(zipName))) {
+            ZipEntry zipEntry = zis.getNextEntry();
+            while (zipEntry != null) {
+                File newFile = new File(destination, zipEntry.getName());
+                if (zipEntry.isDirectory()) {
+                    if (!newFile.isDirectory() && !newFile.mkdir()) {
+                        throw new IOException("Failed to create directory " + newFile);
+                    }
+                } else {
+                    File parent = newFile.getParentFile();
+                    if (!parent.isDirectory() && !parent.mkdirs()) {
+                        throw new IOException("Failed to create directory " + parent);
+                    }
+                    FileOutputStream fos = new FileOutputStream(newFile);
+                    int len;
+                    while ((len = zis.read(buffer)) > 0) {
+                        fos.write(buffer, 0, len);
+                    }
+                    fos.close();
                 }
-            } else {
-                File parent = newFile.getParentFile();
-                if (!parent.isDirectory() && !parent.mkdirs()) {
-                    throw new IOException("Failed to create directory " + parent);
-                }
-                FileOutputStream fos = new FileOutputStream(newFile);
-                int len;
-                while ((len = zis.read(buffer)) > 0) {
-                    fos.write(buffer, 0, len);
-                }
-                fos.close();
+                zipEntry = zis.getNextEntry();
             }
-            zipEntry = zis.getNextEntry();
+        } catch (Exception exception) {
+            System.out.println(exception.getMessage());
         }
     }
 
